@@ -1,0 +1,104 @@
+Gun 컴포넌트의 필드 채우기
+ Gun 스크립트 작성이 끝났다면, 해당 스크립트 내에 여러 필드들을 채워주어야 한다
+ Fire Transform => Fire Position
+ Muzzle Flash Effect => MuzzleFlashEffect
+ Shell Eject Effect => ShellEjectEffect
+ Shot Clip => Gun Shoot
+ Reload Clip => Gun Reload
+
+! 슈터 만들기
+ 현재 Gun 게임 오브젝트를 완성하였지만, 총을 쏘는 슈터를 만들지 못하여 총을 쏘거나 재장전할 수 없습니다.
+ 총을 쏘는 슈터 역할을 하는 PlayerShooter 스크립트를 만들어야 함
+ PlayerShooter의 역할 : 플레이어 입력에 따라 총을 쏘거나 재장전
+                             플레이어 캐릭터의 손이 항상 총의 손잡이에 위치하도록 합니다.
+                            -> 어떤 애니메이션을 사용하든 상관없이 캐릭터의 손의 위치가 항상 총의 손잡이에 위치하려면 
+                               에니메이터의 IK를 사용하여야 합니다.
+
+ *IK
+  FK : 캐릭터의 에니메이션은 기본적으로 FK(Foward Kinematics) 전진운동학으로 동작합니다.
+  FK에서는 부모 조인트에서 자식조인트 순서로 움직임을 적용합니다.
+  FK ex) 물건을 집다
+   1. 어깨를 움직입니다. 어깨에 종속된 팔이 같이 움직입니다.
+   2. 팔을 움직입니다. 팔에 종속된 손이 같이 움직입니다.
+   3. 손을 움직입니다.
+  이러하여 FK는 손의 위치를 먼저 정하고 거기에 맞춰 에니메이션을 변형할 수 없습니다.
+  따라서 FK로 물건을 집는 에니메이션을 재생하면 물건의 위치에 맞춰 손의 위치를 변형할 수 없기 때문에 
+  손의 위치로 물건을 순간이동 시켜야 합니다.
+
+  IK는 (Inverse Kinematics : 역운동학)는 자식 조인트의 위치를 먼저 결정하고 부모 조인트가 거기에 맞춰 변형됩니다.
+  IK ex) 물건을 집다
+   1. 손의 위치를 물건의 위치로 이동합니다.
+   2. 팔이 손의 위치에 맞춰 이동합니다.
+   3. 어깨가 팔의 위치에 맞춰 움직입니다.
+  이러하여 IK는 물건의 위치에 맞춰 손의 위치를 먼저 결정할 수 있기에 물건이 어디에 있든 자연스럽게 물건을 집을 수 있습니다.
+  에니메이터 컴포넌트가 IK 정보를 갱신할 때 마다 OnAnimatorIK 메시지가 발생합니다.
+  -> 스크립트에서 IK정보가 발생할 때 마다 자동 실행되는 OnAnimatorIK() 메서드를 구현하면 IK를 어떻게 사용할지 코드로 작성할 수 있습니다.
+  IK 사용은 어떻게 하는가?
+   에니메이터 컨트롤러-> 레이어 -> IK Pass 설정이 켜져 있어야 함
+
+ PlayerShooter스크립트 작성하기
+  사용된 변수 살펴보기
+   public Gun gun; -> Gun 게임 오브젝트의 Gun 컴포넌트를 변수 gun에 담았습니다.
+   IK 갱신에 사용할 변수(OnAnimatorIK)
+    public Transform gunPivot; , public Transform leftHandMount;, public Transform rightHandMount;
+    Gun Pivot은 Gun게임 오브젝트를 배치하는 기준점이 되며, gunPivot의 Transform을 할당
+    IK를 이용하여 gunPivot의 위치가 언제나 팔의 오른 쪽 팔꿈치가 되도록 조정할 것이며, 상체가 흔들릴 때 총도 같이 흔들림
+    leftHandMount와 rightHandMount는 총의 왼쪽 손잡이와 오른쪽 손잡이 위치를 표현한 것 
+     각자 Gun 게임오브젝트의 자식으로 있는 left Handle, right Handle의 Transform을 할당
+    IK를 이용하여 캐릭터의 왼손과 오른손의 위치가 항상 leftHandMount와 rightHandMount위치에 맞춰지도록 조정할 것입니다.
+   
+   public PlayerInput playerInput;
+   public Animator playerAnimator;
+    playerInput은 플레이어의 입력을 전달하는 PlayerInput 컴포넌트, 
+    playerAnimator는 플레이어 캐릭터의 에니메이션을 재생하는 애니메이터 컴포넌트가 할당될 변수
+
+  (1) Start() 메서드
+   사용할 애니메이터 컴포넌트와 PlayerInput컴포넌트에 대한 참조를 PlayerCharacter 게임 오브젝트로부터 가져옵니다.
+    private void start(){
+     playerInput = GetComponent<PlayerInput>();
+     playerAnimator = GetComponent<Animator>();
+     }
+  (2) OnEnable(), OnDisable() 메서드
+   OnEnable() 메서드는 PlayerShooter 컴포넌트가 활성화 될때 자동으로 실행됨
+   총을 쏘는 슈터가 활성화 되면 총도 함께 활성화 되어야 하므로 총 게임 오브젝트를 활성화하는 처리를 구현
+    private void OnEnable(){
+     // 슈터가 활성화될 때 총도 함께 활성화
+     gun.gameObject.SetActive(true);
+    }
+   이와 같은 맥락으로 OnDisable또한 작성 합니다.
+    private void OnDisable(){
+     // 슈터가 비활성화 될 때 총도 함께 비활성화
+     gun.gameObject.SetActive(false);
+    }
+   (3) Update() 메서드
+    Update()메서드는 매 프레임마다 플레이어의 입력을 감지하고 총을 발사하거나 재장전 합니다.
+     먼저 플레이어의 발사 입력이 감지 되면 gun.Fire()를 실행하여 총을 발사합니다.
+     -> 여기서 발사 입력은 playerInput.fire()값으로 확인
+     만약 플에이어의 재장전 입력이 감지되면 if()문의 gun.Reload()를 실행하여 총을 재장전 할수 있는 상태면 총을 재장전합니다.
+     -> 여기서 재장전 입력은 playerInput.reload()값으로 확인
+    Gun 스크립트의 Fire()메서드와 Reload()메서드에서 총의 상태를 검사하기 때문에 PlayerShooter스크립트에서 검사할 필요는 없습니다.
+    if(gun.Reload()){
+     PlayerAnimator.SetTrigger("Reload");
+    }
+    -> 재장전을 시도 한 경우 재장전에 성공한 경우에만 재장전 애니메이션을 실행하여야 하므로
+        gun.Reload()(boolean 타입)를 통해 재장전을 시도한 결과를 if문으로 검사하여 성공여부를 검사하고 
+        PlayerAnimator.SetTrigger를 통해 Reload트리거를 발생시킵니다.
+    마지막줄에는 UpdateUI() 메서드를 실행하여 매 프레임마다 탄알UI를 갱신합니다.
+
+   (4) UpdateUI() 메서드
+    UpdateUI()메서드는 남은 탄알 UI를 갱신합니다.
+     좀비 서바이버 탄알 UI는 HUD Canvas 게임 오브젝트와 UIManager 스크립트를 이용해 추가되고 관리됩니다.
+     -> UIManager는 싱글턴으로서 각종 게임 UI에 즉시 접근할 수 있는 통로를 제공하는 스크립트
+     UIManager의 UpdateAmmoText() 메서드는 탄알 UI에 즉시 접근하여 현재 탄창의 탄알과 전체 탄알을 UI로 표시해줍니다.
+     현재 이 메서드에서는 gun에 사용할 총이 할당되긴 했지만, UIManager가 싱글턴 씬에 존재하지 않으므로(UIManager를 가진 게임오브젝트를 만들지 않은 현재상태)
+     UI 갱신코드가 실행되지 않아 에러가 나지 않습니다.
+
+   (5) OnAnimatorIK() 메서드
+    OnAnimatorIK() 메서드는 '총을 상체와 함께 흔들기', '캐릭터의 양손을 총의 양쪽 손잡이에 위치시키기' 를 실행하여야 합니다.
+    '총을 상체와 함께 흔들기'는 Gun 게임 오브젝트의 부모 게임 오브젝트인 Gun Pivot 게임오브젝트를 항상 캐릭터의 오른쪽 팔꿈치에 배치하는 것으로 구현
+    -> 만약 이 기능을 구현하지 않으면 상체가 숨을 쉬면서 위 아래로 움직이는동안 총을 제자리에 가만히 떠 있는 것 처럼 보이게 됨
+   그 다음 '캐릭터의 양손을 총의 양쪽 손잡이에 위치시키기'를 구현합니다.
+
+  
+
+

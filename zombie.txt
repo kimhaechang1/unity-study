@@ -1,0 +1,67 @@
+Rigid body
+Angular Drag : 회전에 대한 마찰력 (값을 높일수록 물체가 잘 회전하지 않거나 회전해도 금방 멈춤)
+Constraints
+	Freeze Rotation : 다른 물체에 부딪히는 경우 해당 방향으로 넘어지지않도록 막음
+Animator
+	Apply Root Motion : 게임 오브젝트 위치와 회전을 애니메이션이 제어하도록 허용합니다.
+Window > Animator
+	Any State : 어떤 상황이든 연결된 트리거가 발동되면 해당 트리거로 전이되어 애니메이션을 실행
+blend tree : 애니메이션 클립을 혼합
+	Motion (애니메이션 클립), Threshold(임곗값, 음수값인 경우 반대방향으로 작용), Animation Speed(애니메이션 재생속도)
+	Threshold : 1.0인 경우 마지막 번 클립이 100% 사용, 0.75라면 3/4 클립과 마지막번 클립이 반반 섞임
+Animation mask(Create > Avatar Mask) : 애니메이터의 레이어별로 부위를 다르게 적용
+	애니메이션을 적용할 부위 : 초록색
+	애니메이션을 적용하지 않을 부위 : 붉은색
+Humanoid Rig : 휴머노이드 타입의 3D 모델의 골격과 움직임을 정의하는 조인트 계층 구조
+IK Pass (Inverse Kinematics)
+PlayerInput script : 플레이어의 입력을 감지하고 이를 다른 컴포넌트에 알려줍니다.
+PlayerMovement script : 플레이어 입력에 따라 캐릭터를 앞뒤로 움직이고 좌우로 회전합니다.
+Property : 변숫값을 읽거나 쓰는 과정에서 유연한 처리를 삽입할 수 있는 클래스 멤버(변수처럼 보이지만 특수한 형태의 메서드 이다.)
+자동 구현 프로퍼티 : get과 set의 접근 권한을 분리하는 것 이외의 처리가 필요하지 않을 때 사용
+	ex) public float move { get; private set; }
+	-> public float move {
+		get { return m_move; }
+		private set { m_move = value; }
+	    }
+	    private float m_move;
+Input.GetAxis() : 입력으로 감지할 축 이름을 받아 감지된 입력을 숫자로 반환합니다.
+Input.GetButton() : 입력으로 감지할 버튼 이름을 받아 해당 버튼을 누르고 있는 동안에는 true, 그렇지 않은 동안에는 false를 반환합니다.
+FixedUpdate() : Update()처럼 유니티 이벤트 메서드로서 주기적으로 실행되지만, 물리 정보 갱신 주기(기본값 0.02초)에 맞춰 실행됩니다.
+playerRigidbody.rotation = playerRigidbody.rotation*Quaternion.Euler() : 어떤 회전 상태에서 상대적으로 더 회전할 때는 쿼터니언 곱을 사용합니다.
+
+시네머신(Cinemachine)
+시네머신은 카메라의 움직임을 손쉽게 제어하는 유니티 공식 패키지입니다.
+브레인 카메라(Brain Camera) : 게임월드를 촬영하는 진짜 카메라 이며 씬에 하나만 존재
+가상 카메라(Virtual Camera) : 브레인카메라의 분신 역할을 하며 씬에 여러 개 존재할 수 있습니다.
+
+브레인 카메라가 어떤 가상 카메라를 현재 활성화된 카메라로 설정하면 브레인 카메라는 해당 가상 카메라의 위치로 이동합니다.
+해당 가상 카메라의 설정값들을 브레인 카메라 자신의 설정값으로 사용합니다.
+
+브레인 카메라(Main camera)
+ADD component > Cinemachine > Cinemachine Brain
+가상 카메라 생성
+Cinemachine > Create Virtual Camera
+가상카메라를 추적 카메라로 만들기
+Cinemachine Virtual Camera의 컴포넌트에 Follow필드와 Look At 필드에 Player Character게임 오브젝트를 드래그&드롭
+	Follow : 게임 오브젝트를 따라다닙니다.(자신의 위치 변경)
+	Look At : 필드에 할당된 게임 오브젝트를 주시합니다(자신의 회전변경)
+
+카메라의 자연스로운 추적을 구현하는데 사용되는 소프트 존, 하드리밋, 그리고 데드존 영역
+이들 세개는 주시하는 물체가 게임화면 밖으로 벗어나지 않게 추적의 세기를 단계별로 조정
+
+소프트존 : 물체가 화면의 조준점에 오도록 카메라가 부드럽게 회전
+하드리밋 : 소프트존을 벗어나 하드리밋에 도달하려하면 카메라가 격하게 회전, 그래서 카메라는 소프트존을 벗어나질 않음
+데드존과 소프트존의 크기를 줄이면 물체가 조금이라도 화면 중앙을 벗어나려 할 때 지연시간 없이 카메라가 즉시 물체를 향해 회전하게 됨
+반대로 데드존과 소프트존의 크기를 느리면 물체를 쫓는 화면의 움직임이 느리게 느껴질 수 있습니다.
+
+Field of View, FOV : 시야각
+Body : 카메라가 Follow에 할당된 추적을 어떻게 따라다닐지 결정
+binding mode : 카메라와 몸체사이의 간격 설정
+	World Space : 전역공간을 기준으로 계산
+Damping : 값의 급격한 변화를 꺾어 이전 값과 이후 값을 부드럽게 이어주는 비율
+	값이 커지면 카메라 위치의 급격한 변화는 줄어들지만 위치가 신속하게 변경되지 않고 지연시간이 늘어납니다.
+Tracked Object Offset : 원래 추적 대상에서 얼마나 더 떨어진 곳을 조준할 지 결정합니다.
+
+C#인터페이스 : 외부와 통신하는 공개 통로이며, 통로의 규격.
+	인터페이스는 통로의 규격은 강제하지만 그 아래에 어떤 일이 일어날지는 결정하지 않습니다.
+라인 렌더러  : 주어진 점들을 이은 선을 그리는 컴포넌트

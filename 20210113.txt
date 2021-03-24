@@ -1,0 +1,39 @@
+생명력의 기반이 되는 LivingEntity 클래스 만들기
+LivingEntity 확장하여 플레이어 체력과 적의 체력 구성
+플레이어 체력 UI만들고  UI슬라이더를 만드는 방법과 게임 월드 내부 UI 배치법
+AI 좀비를 만들면서 유니티 내비게이션 시스템을 사용하여 목적지 까지의 경로를 자동으로 계산 하고 이동하는것을 구현
+
+!다형성
+ C#에서 다형성은 자식 클래스 타입을 부모 클래스 타입으로 다룰 수 있게 합니다.
+ 이것은 현실에서 어떤 물체를 더 '포괄적인 분류' 로 다루는 것에 비유할 수 있습니다.
+
+ (1) 상속관계에서 다형성
+ ex1)
+  public class Monster : MonoBehaviour {
+   public float damage = 100;
+   public void attack(){
+    Debug.Log("공격!");
+   }
+  }
+  public class Orc : Monster {
+   public void WarCry() {
+    Debug.Log("전투함성");
+   }
+  }
+  public class Dragon : Monster {
+   public void Fly(){
+    Debug.Log("날기");
+   }
+  }
+
+ 여기서 Orc와 Dragon은 Monster의 필드와 메서드 그리고 자신들이 가진 고유한 필드와 메서드도 함께 가집니다.
+ 다음은 씬에서 Orc타입의 오브젝트를 찾아 Monster 타입의 변수에 할당하는 예시 입니다.
+ ex2)
+  Orc orc = FindObjectOfType<Orc>(); // 씬 에서 오크를 찾음
+  Monster monster = orc; // 몬스터 타입의 변수에 오크를 할당
+  monster.Attack(); // 실행가능
+  monster.WarCry(); // 실행 불가능
+  여기서 Monster monster = orc; << 이 부분을 통해 orc의 타입이 Monster 로 변형 된 것은 아닙니다
+  따라서 4번째 줄 코드는 컴퓨터가 변수 monster에 할당된 오브젝트가 Orc타입인지 추측할 수 없기 때문에 오류가 발생합니다.
+
+ 
